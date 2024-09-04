@@ -1,0 +1,90 @@
+networks:
+  my_bridge_network:
+    driver: bridge
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+    command: >
+      --init-file /docker-entrypoint-initdb.d/create_user.sql
+    volumes:
+      - ./mariadb/data:/var/lib/mysql
+      - ./mariadb/config/my.cnf:/etc/mysql/my.cnf
+      - ./mariadb/init:/docker-entrypoint-initdb.d
+    networks:
+      - my_bridge_network
+
+  redis:
+    image: redis:7.2-alpine
+    user: "1000:1000"  # 设置适当的用户和组
+    restart: always
+    volumes:
+      - ./redis/data:/data
+      - ./redis/config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - my_bridge_network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./rabbitmq/data:/var/lib/rabbitmq
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - my_bridge_network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - ./kafka/data:/var/lib/kafka/data
+      - ./kafka/config/server.properties:/etc/kafka/server.properties
+    ports:
+      - "9092:9092"
+    networks:
+      - my_bridge_network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - ./zookeeper/data:/var/lib/zookeeper/data
+      - ./zookeeper/log:/var/lib/zookeeper/log
+    networks:
+      - my_bridge_network
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    platform: linux/amd64
+    environment:
+      KAFKA_BROKER_CONNECT: "kafka:9092"
+    ports:
+      - "9000:9000"
+    networks:
+      - my_bridge_network
+    depends_on:
+      - kafka

@@ -1,0 +1,5 @@
+.DS_Store
+# 忽略所有 data 目录
+data/
+# 忽略所有 log 目录
+log/
