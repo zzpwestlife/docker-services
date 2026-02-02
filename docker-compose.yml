@@ -3,20 +3,18 @@ networks:
     driver: bridge
 
 services:
-  mariadb:
-    image: mariadb:10.11
+  mysql:
+    image: mysql:8.0
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_DATABASE: mydb
+      MYSQL_ROOT_HOST: "%"
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
     ports:
       - "3306:3306"
-    command: >
-      --init-file /docker-entrypoint-initdb.d/create_user.sql
     volumes:
-      - ./mariadb/data:/var/lib/mysql
-      - ./mariadb/config/my.cnf:/etc/mysql/my.cnf
-      - ./mariadb/init:/docker-entrypoint-initdb.d
+      - ./mysql/data:/var/lib/mysql
     networks:
       - my_bridge_network
 
